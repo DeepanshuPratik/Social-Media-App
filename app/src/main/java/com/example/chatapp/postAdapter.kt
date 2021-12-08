@@ -5,15 +5,18 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.chatapp.models.Post
 import com.example.socialapp.Utils
 import com.firebase.ui.firestore.FirestoreRecyclerAdapter
 import com.firebase.ui.firestore.FirestoreRecyclerOptions
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.ktx.Firebase
 
 
-class postAdapter(options: FirestoreRecyclerOptions<Post>) : FirestoreRecyclerAdapter<Post,postAdapter.postViewHolder> (
+class postAdapter(options: FirestoreRecyclerOptions<Post>,val listner: IpostAdapter) : FirestoreRecyclerAdapter<Post,postAdapter.postViewHolder> (
     options
 ){
     class postViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView){
@@ -26,7 +29,11 @@ class postAdapter(options: FirestoreRecyclerOptions<Post>) : FirestoreRecyclerAd
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): postViewHolder {
-        return postViewHolder(LayoutInflater.from(parent.context).inflate(R.layout.item_post,parent,false))
+        val viewHolder =  postViewHolder(LayoutInflater.from(parent.context).inflate(R.layout.item_post,parent,false))
+        viewHolder.likeButton.setOnClickListener{
+            listner.OnlikeClicked(snapshots.getSnapshot(viewHolder.adapterPosition).id)
+        }
+        return viewHolder
     }
 
     override fun onBindViewHolder(holder: postViewHolder, position: Int, model: Post) {
@@ -35,6 +42,19 @@ class postAdapter(options: FirestoreRecyclerOptions<Post>) : FirestoreRecyclerAd
         holder.likeCount.text = model.likedBy.size.toString()
         Glide.with(holder.userImage.context).load(model.createdBy.imageUrl).circleCrop().into(holder.userImage)
         holder.createdAt.text = Utils.getTimeAgo(model.createdAt)
+
+        val auth = Firebase.auth
+        val currentUserId = auth.currentUser!!.uid
+        val isLiked = model.likedBy.contains(currentUserId)
+        if(isLiked)
+            holder.likeButton.setImageDrawable(ContextCompat.getDrawable(holder.likeButton.context,R.drawable.ic_liked))
+        else holder.likeButton.setImageDrawable(ContextCompat.getDrawable(holder.likeButton.context, R.drawable.ic_unliked))
     }
 
+}
+
+interface IpostAdapter{
+    fun OnlikeClicked(postId : String){
+
+    }
 }
